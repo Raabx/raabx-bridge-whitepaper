@@ -99,7 +99,7 @@ This is an MVP demo. Funds and per-tx caps are limited; withdrawals may be delay
 ---
 
 ## 10) Contact
-Org: RAABX
+team@raabx.com
 
 ---
 
