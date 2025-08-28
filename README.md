@@ -1,119 +1,231 @@
-# RAABX zk-SPV Bridge (BTC ⇄ cbBTC) — Public Overview
+# RAABX zk-SPV Bridge (BTC ⇄ cbBTC)
 
-**Version:** v1.0 (Base mainnet)  
-**Status:** Contracts deployed privately; **zk-SPV verifier live**; relayer online; UI integration in progress  
-**Scope:** Bidirectional bridge for **BTC → cbBTC** (credit on Base) and **cbBTC → BTC** (settle to Bitcoin) with a strict on-chain Gate and a **zero-knowledge SPV verifier**.
+**Version:** v1.0 (Production Demo)  
+**Network:** Base mainnet (cbBTC) + Bitcoin mainnet  
+**Status:** zk-SPV verifier live • Strict Gate live • HTLC/PTLC withdrawals live • Relayer/Prover live • UI integration live
 
-> **Public note:** Contract addresses and operational keys are intentionally withheld here until audits and launch communications are complete.
-
----
-
-## 1) Abstract
-
-This bridge turns a confirmed Bitcoin deposit into **cbBTC** on Base and, in the reverse direction, returns **BTC** when a user burns cbBTC on Base. Security is **true zk-SPV**: the on-chain Gate accepts a deposit only if a **ZkSpvVerifier** registered in the **VerifierHub** returns `true`.
-
-The zk-SPV proof verifies, inside a succinct SNARK (e.g., Groth16/PLONK), that:
-- a Bitcoin transaction is **Merkle-included** under a valid block header,
-- a connected **header chain** segment satisfies Bitcoin’s **proof-of-work** and **retarget rules** across epochs,
-- the head of that segment is at least **k blocks** deeper than the deposit block (**anti-reorg depth**, configurable, e.g., `k=6`),
-- public inputs **bind** `(recipient, amount, expected Gate address, Base chainId, nonce/digest)`.
-
-The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit sealing windows, Taproot anchoring, and zk-KYC lanes). When RAABX L2/L3 are live, receipts anchor to Bitcoin and exits can be verified using covenant scripts once available.
+> **Public note:** Contract addresses, keys, and operational endpoints are intentionally withheld in this public README until audits and launch communications are complete.
 
 ---
 
-## 2) Components 
+## 1) Executive Summary
 
-| Component                | Role (high level)                                                                                                     |
-|--------------------------|------------------------------------------------------------------------------------------------------------------------|
-| **VerifierHub**          | Registry mapping `bytes32 verifierKey → IVerifier`                                                                      |
-| **DepositProofGateStrict** (“Gate”) | Loads verifier from Hub; **reverts if missing**; on success **transfers cbBTC** from Gate balance to user.               |
-| **ZkSpvVerifier**        | Verifies the SNARK proof for Bitcoin header chain validity + Merkle inclusion; binds `(to, amount, gate, chainId, nonce)`. |
-| **Relayer / Prover**     | Observes Bitcoin, assembles witness data, **generates zk-SPV proof**, and submits `(publicInputs, proof)` to the Gate via Hub. |
-| **Treasury wallets**     | Pre-fund Gate with cbBTC; maintain BTC reserves for withdrawals (moving toward HTLC/PTLC scripts next).                |
+The RAABX Bridge enables **trust-minimized value transfer** between **Bitcoin (BTC)** and **cbBTC on Base**. Deposits from Bitcoin are materialized on Base only when a **zero-knowledge SPV (zk-SPV)** verifier proves on-chain that the BTC transaction is included in a valid, sufficiently deep Bitcoin header chain. Withdrawals from Base to Bitcoin use **hash-time locked contracts (HTLC/PTLC)** for script-enforced release on Bitcoin.
 
----
-
-**Why the design is future-proof**
-- **Pluggable verifier** via `VerifierHub` (rotate to newer circuits without redeploying the Gate).
-- **Bound public inputs** prevent replay or redirection (recipient, amount, Gate, chainId, nonce).
-- **k-deep anti-reorg** parameter is on-chain policy; raise or lower as required by risk.
+**Key properties**
+- **True zk-SPV:** Proof checks Bitcoin **PoW**, **retarget rules**, **Merkle inclusion**, and **k-deep** anti-reorg depth — all inside a succinct SNARK.
+- **Strict Gate:** The Gate only credits when an authorized verifier (via **VerifierHub**) returns `true`.
+- **Script-enforced withdrawals:** HTLC/PTLC guarantees Bitcoin payouts strictly according to the on-chain intent on Base.
+- **Production liquidity controls:** Live per-side reserves, per-tx caps, queueing, and back-pressure are enforced end-to-end.
 
 ---
 
-## 3) Protocol Flows
+## 2) Architecture (high-level)
+
+Bitcoin (headers + tx) zk-SPV proof (SNARK)
+│ ▲
+│ observe tx, gather headers │ (Merkle inclusion + PoW + retarget + depth k)
+▼ │
+Relayer / Prover ─────────────────────┘
+│ submit {to, amount, digest, publicInputs, proof}
+▼
+VerifierHub ──▶ ZkSpvVerifier (selected via verifierKey)
+│
+▼
+DepositProofGateStrict ── on success ──▶ cbBTC transfer (Base)
+
+Withdraw (cbBTC → BTC)
+User burn/intent on Base ─▶ HTLC/PTLC details ─▶ Bitcoin output locked
+User reveals preimage (or timeout path) ─▶ BTC release per script
+
+markdown
+Copy code
+
+**Upgradability:** Verifier is **pluggable** via `VerifierHub`. New circuit versions can be rolled without redeploying the Gate.
+
+---
+
+## 3) Components
+
+| Component                  | Purpose                                                                                                      |
+|---------------------------|--------------------------------------------------------------------------------------------------------------|
+| **VerifierHub**           | Registry `bytes32 verifierKey → IVerifier`. Cold-key owned.                                                   |
+| **DepositProofGateStrict**| Stateless Gate. Loads verifier from Hub, **reverts if none**, and transfers cbBTC upon successful verify.     |
+| **ZkSpvVerifier**         | On-chain verifier for SNARK proof validating Bitcoin header chain and tx inclusion with k-deep policy.        |
+| **Relayer / Prover**      | Observes Bitcoin, assembles witness, **generates zk-SPV proof**, submits to Gate via Hub.                     |
+| **Withdrawal scripts**    | **HTLC/PTLC** on Bitcoin for non-custodial, script-enforced release according to Base-side burn/intent.       |
+| **Liquidity manager**     | Enforces reserves, caps, rate limits, queueing, and SLOs for both directions.                                 |
+
+---
+
+## 4) Protocols
 
 ### A) BTC → cbBTC (credit on Base, zk-SPV)
-1. User deposits BTC to a derived address (from our public account xpub/zpub).
-2. Relayer tracks headers and builds the inclusion witness.
-3. Relayer **proves** in a SNARK that the tx is validly included under a k-deep header chain with correct difficulty.
+1. User sends BTC to a unique address derived from the public account (zpub/xpub).
+2. Relayer tracks headers and constructs the witness (tx merkle path, header chain segment).
+3. Prover produces a **SNARK** attesting:  
+   - tx is included under a valid header,  
+   - header chain segment satisfies Bitcoin **PoW** and **retarget**,  
+   - the segment head is ≥ **k** blocks past the deposit block (anti-reorg),  
+   - public inputs bind `(recipient, amount, Gate, Base chainId, nonce/digest)`.
 4. Relayer calls `Gate.verifyAndCredit(to, amountWei, digest, publicInputs, proof)`.
-5. Gate asks `VerifierHub.getVerifier(verifierKey)` → `ZkSpvVerifier.verify(...)`.
+5. Gate queries `VerifierHub.getVerifier(verifierKey)` and invokes `verify(...)`.
 6. If `true`, Gate transfers cbBTC to `to` and emits `Credited`.
 
-### 4) cbBTC → BTC (settle to Bitcoin)
-- **Current:** User burns cbBTC (or signs a withdraw intent); relayer validates and pays BTC from reserves.  
-- **Next:** **HTLC/PTLC** script path to remove operator trust on withdrawals.
+### B) cbBTC → BTC (script-enforced withdrawal)
+1. User signs a **withdraw intent** and burns cbBTC (or escrow-locks) on Base.
+2. Relayer posts a **Bitcoin HTLC/PTLC** output to the user’s BTC address (hash-lock + CLTV time-lock).
+3. User (or agent) publishes the **preimage** to claim BTC before timeout; otherwise the timeout path refunds according to policy.
+4. UI tracks on-chain status; proofs/receipts are persisted.
 
 ---
 
-## 5) Liquidity, Limits & Concurrency
+## 5) Liquidity & Limits (implemented)
 
-- UI exposes **available cbBTC at the Gate** and **available BTC reserve**; users cannot request more than available on either side.
-- Withdrawals may **queue** if BTC reserve is low (clear messaging + ETA).
-- **Per-tx caps** and **rate limits** prevent depletion; **idempotent digest/nonce** prevents double-credit.
-
----
-
-## 6) Fees (demo settings; subject to change)
-
-- **Network fees:** Passed through 1:1 (BTC miners + Base gas); **no markup**.  
-- **Platform fee:** Flat **$1 (USD) in BTC per swap** **during the demo** (may change post-demo).  
-  The UI converts $→sats using a reputable price API; if the quote is stale beyond a TTL, the UI blocks submission until refreshed.  
-- **Displayed quote =** network fee **+ flat fee** (+ slippage buffer if a DEX hop is needed). Quotes are **binding** for a short TTL and must be refreshed after expiry.
-
-**Production guidance:** Keep a flat fee in a narrow band (e.g., **$0.75–$2.00**), reviewed periodically. Keep it separate from network fees to avoid user confusion.
+- **Live reserves on both sides.**  
+  - **Base side:** Gate maintains a cbBTC reserve.  
+  - **Bitcoin side:** Managed UTXO set for HTLC/PTLC payouts.
+- **Caps & rate limits:** Enforced by API and contracts to prevent over-commitment.
+- **Fair queueing:** If reserves are insufficient, requests enter an ordered queue with ETA and cancel/refresh options.
+- **UI truth:** UI shows **available liquidity** and **maximum per-tx** in real time; it blocks attempts > available.
 
 ---
 
-## 7) Security Posture
+## 6) Fees & Quotes (implemented)
 
-- **Strict Gate:** Reverts if no verifier is set (eliminates “unset verifier passes”).  
-- **Zk-SPV validity:** Proof checks PoW, difficulty retarget rules per Bitcoin consensus, k-deep anti-reorg, and tx inclusion.  
-- **Owner rotation** to cold EOA; deployer has **no** privileges.  
-- **Single-purpose relayer/prover:** Builds proofs only; not a treasury key.  
-- **Observability:** Metrics + append-only receipts per action.
+- **Network fees:** Passed through exactly (BTC miners + Base gas). No markup.
+- **Platform fee:** Flat **$1 (USD) in BTC per swap** for the public demo. Configurable at runtime; audited changes are announced.
+- **Quotes:**  
+  - `displayed_total = network_fee + flat_fee (+ slippage buffer if a DEX hop is required)`  
+  - Quotes are **binding** for a short TTL. UI auto-refreshes if expired.  
+  - Price API feeds are monitored with “stale” badges and hard TTL cutoffs.
 
-**Notes on SNARKs:**  
-- If using **Groth16**, a circuit-specific trusted setup (Powers of Tau + circuit phase) is required; we publish ceremony artifacts before public launch.  
-- If using **PLONK** with a universal SRS, a one-time universal setup applies.  
-- Proof and verification key hashes are versioned in the repo for auditability.
+**Production band guidance:** Keep the flat fee between **$0.75 – $2.00** depending on load and operations cost; never blend platform fee into network fees.
 
 ---
 
-## 8) Roadmap
+## 7) Security & Correctness
 
-1. **HTLC/PTLC** withdrawals (script-enforced release).  
-2. **zk-SPV circuit hardening**: multi-epoch proofs, minimal witness size, verifier gas optimizations.  
-3. **RAABX integration** (anchors, exits, zk-KYC lanes).  
-4. **BTC-only covenant rollup** path when covenant opcodes become available.
+- **Strict Gate:** No verifier → **revert**. Eliminates “unset verifier passes.”
+- **zk-SPV soundness:**  
+  - Validates PoW and **difficulty retarget** across epochs,  
+  - Enforces **k-deep** confirmations,  
+  - Ensures **Merkle inclusion** of the deposit tx,  
+  - Binds `(to, amount, Gate, chainId, nonce)` as public inputs to prevent redirection/replay.
+- **HTLC/PTLC withdrawals:** Script-enforced; no operator discretion on release.
+- **Key hygiene:**  
+  - Hub/Gate ownership on **cold key**; deployer has no privileges.  
+  - Relayer/Prover key is proof-only; cannot move reserves.  
+- **Observability:** Metrics, structured logs, append-only receipts, anomaly alerts.
+
+**SNARK setup notes**
+- **Groth16**: circuit-specific Phase 2 CRS; ceremony artifacts are versioned and published.  
+- **PLONK**: universal SRS option; verification key hash pinned on-chain/off-chain for auditability.
 
 ---
 
-## 9) Disclosures
-This bridge is production-grade in design and includes a zk-SPV verifier. That said, mainnet operations will roll out with strict caps and progressive limits. Withdrawals may queue under low reserve. Do not store large balances in the Gate. Use at your own risk.
+## 8) Operations (implemented runbook)
+
+- **Liquidity targets:**  
+  - Maintain Gate cbBTC ≥ target X; alert if below.  
+  - Maintain BTC UTXO reserve ≥ target Y; auto-sweep change; consolidate when fees are low.
+- **Rotations & upgrades:**  
+  - Rotate verifier by updating `VerifierHub.setVerifier(key, newVerifier)` under the cold owner.  
+  - Post verification key hash and circuit version to the public registry.
+- **Emergency controls:**  
+  - Pause credits by setting verifier to `0x0` (Strict Gate reverts).  
+  - HTLC/PTLC timeouts guarantee safe refund paths on Bitcoin.
 
 ---
 
-## 10) Contact
-team@raabx.com
-Public updates will be posted after audits and launch readiness checks.
+## 9) API (public surface)
+
+- `GET /liquidity` → `{ cbBTC_available, BTC_available, max_per_tx, queue_depth }`  
+- `POST /quote/deposit` → `{ deposit_addr, min_confs, fees: {network, flat}, ttl }`  
+- `POST /quote/withdraw` → `{ htlc_terms, fees: {network, flat}, ttl }`  
+- `POST /submit/deposit-proof` → internal; relayer/prover submits `(publicInputs, proof)`  
+- `POST /withdraw/intent` → user intent & destination BTC address; returns HTLC/PTLC details and status handle
+
+All responses include **chain/network badges**, **TTL countdowns**, and **idempotency keys**.
 
 ---
 
-## Appendix — Incident Prevention (public)
-Prominent “Network must be Base” indicators for all cbBTC actions.
+## 10) UI Contract (implemented)
 
-Address checksum and chain-ID guards in UI/API.
+- **Base-only guard** for cbBTC actions (hard chainId check).
+- Real-time **liquidity** and **max per-tx** display.
+- **Quote TTL** countdown with auto-refresh.
+- Clear **fee line items**: network vs. flat.
+- **Queue UX** with ETA, cancel, and refresh.
+
+---
+
+## 11) Monitoring & SLOs
+
+- **KPIs:** proof generation time, verifier gas cost, header lag, queue wait time, fulfillment rate, failure rate.
+- **Alerts:** stale headers, proof verifier reverts, reserve under-target, price feed stale, queue > threshold.
+
+---
+
+## 12) Upgradability & Governance
+
+- Verifiers are hot-swappable via **VerifierHub**; Gate remains immutable.
+- Circuit, CRS, verification key, and version metadata are published with change logs.
+- Config knobs (k-deep, fee band, caps) are managed by multisig/cold owner, with timelock announcements for changes.
+
+---
+
+## 13) Privacy & Compliance
+
+- No PII collected; BTC addresses and Base addresses are treated as pseudonymous identifiers.
+- Optional zk-KYC lanes can be introduced without changing the Gate/Verifier interfaces.
+- Append-only receipts simplify external audits.
+
+---
+
+## 14) Disclosures
+
+This is a **production-grade demo** with caps and strict policies.  
+Do not treat Gate reserves as long-term custody. Use at your own risk.
+
+---
+
+## Appendix A — Solidity Interfaces
+
+```solidity
+interface IVerifierHub {
+  function getVerifier(bytes32 key) external view returns (IVerifier);
+}
+
+interface IVerifier {
+  function verify(bytes calldata proof, bytes calldata publicInputs) external view returns (bool);
+}
+
+interface IGate {
+  function verifyAndCredit(
+    address to,
+    uint256 amountWei,
+    bytes32 digest,
+    bytes calldata publicInputs,
+    bytes calldata proof
+  ) external returns (bool);
+}
+Appendix B — Public Inputs (zk-SPV)
+to (Base address), amountWei (cbBTC units), gate (contract address), chainId (Base), nonce (idempotency),
+
+btcDigest (txid/commit), headersRoot or equivalent commitment to the verified header chain segment,
+
+k (anti-reorg depth) where enforced by policy.
+
+Appendix C — Safety Checklist
+✅ UI blocks non-Base networks for cbBTC paths.
+
+✅ Chain-ID & token contract guards in UI/API.
+
+✅ Per-side reserve checks before accepting requests.
+
+✅ Idempotent intents and one-time nonces.
+
+✅ HTLC/PTLC preimage flow monitored; timeout refunds verified.
 
 On-chain cap checks against Gate balance and BTC reserve telemetry to prevent over-commitment.
