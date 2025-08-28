@@ -48,8 +48,7 @@ Withdraw (cbBTC → BTC)
 User burn/intent on Base ─▶ HTLC/PTLC details ─▶ Bitcoin output locked
 User reveals preimage (or timeout path) ─▶ BTC release per script
 
-markdown
-Copy code
+---
 
 **Upgradability:** Verifier is **pluggable** via `VerifierHub`. New circuit versions can be rolled without redeploying the Gate.
 
