@@ -100,35 +100,12 @@ The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit
 
 ---
 
-## 9) Interfaces (sketch)
-
-```solidity
-interface IVerifierHub {
-  function getVerifier(bytes32 key) external view returns (IVerifier);
-}
-
-interface IVerifier {
-  function verify(bytes calldata proof, bytes calldata publicInputs) external view returns (bool);
-}
-
-interface IGate {
-  function verifyAndCredit(
-    address to,
-    uint256 amountWei,
-    bytes32 digest,
-    bytes calldata publicInputs,
-    bytes calldata proof
-  ) external returns (bool);
-}
-
----
-
-## 10) Disclosures
+## 9) Disclosures
 This bridge is production-grade in design and includes a zk-SPV verifier. That said, mainnet operations will roll out with strict caps and progressive limits. Withdrawals may queue under low reserve. Do not store large balances in the Gate. Use at your own risk.
 
 ---
 
-## 11) Contact
+## 10) Contact
 team@raabx.com
 Public updates will be posted after audits and launch readiness checks.
 
