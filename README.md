@@ -103,7 +103,7 @@ User reveals preimage (or timeout path) ─▶ BTC release per script
 ## 6) Fees & Quotes (implemented)
 
 - **Network fees:** Passed through exactly (BTC miners + Base gas). No markup.
-- **Platform fee:** Flat **$1 (USD) in BTC per swap** for the public demo. Configurable at runtime; audited changes are announced.
+- **Platform fee:** Flat **$1 (USD) in BTC per swap** for the demo and are subject to change. Configurable at runtime; audited changes are announced.
 - **Quotes:**  
   - `displayed_total = network_fee + flat_fee (+ slippage buffer if a DEX hop is required)`  
   - Quotes are **binding** for a short TTL. UI auto-refreshes if expired.  
