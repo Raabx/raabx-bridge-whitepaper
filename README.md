@@ -219,22 +219,3 @@ interface IGate {
     bytes calldata proof
   ) external returns (bool);
 }
-Appendix B — Public Inputs (zk-SPV)
-to (Base address), amountWei (cbBTC units), gate (contract address), chainId (Base), nonce (idempotency),
-
-btcDigest (txid/commit), headersRoot or equivalent commitment to the verified header chain segment,
-
-k (anti-reorg depth) where enforced by policy.
-
-Appendix C — Safety Checklist
-✅ UI blocks non-Base networks for cbBTC paths.
-
-✅ Chain-ID & token contract guards in UI/API.
-
-✅ Per-side reserve checks before accepting requests.
-
-✅ Idempotent intents and one-time nonces.
-
-✅ HTLC/PTLC preimage flow monitored; timeout refunds verified.
-
-On-chain cap checks against Gate balance and BTC reserve telemetry to prevent over-commitment.
