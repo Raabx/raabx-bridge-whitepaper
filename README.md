@@ -23,15 +23,25 @@ The RAABX Bridge enables **trust-minimized value transfer** between **Bitcoin (B
 ## 2) Architecture (high-level)
 
 Bitcoin (headers + tx) zk-SPV proof (SNARK)
+
 │ ▲
+
 │ observe tx, gather headers │ (Merkle inclusion + PoW + retarget + depth k)
+
 ▼ │
+
 Relayer / Prover ─────────────────────┘
+
 │ submit {to, amount, digest, publicInputs, proof}
+
 ▼
+
 VerifierHub ──▶ ZkSpvVerifier (selected via verifierKey)
+
 │
+
 ▼
+
 DepositProofGateStrict ── on success ──▶ cbBTC transfer (Base)
 
 Withdraw (cbBTC → BTC)
