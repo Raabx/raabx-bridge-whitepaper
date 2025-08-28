@@ -2,7 +2,7 @@
 
 **Version:** v1.0 (Production Demo)  
 **Network:** Base mainnet (cbBTC) + Bitcoin mainnet  
-**Status:** zk-SPV verifier live • Strict Gate live • HTLC/PTLC withdrawals live • Relayer/Prover live • UI integration live
+**Features: and Components** zk-SPV verifier • Strict Gate • HTLC/PTLC withdrawals • Relayer/Prover  • UI integration 
 
 > **Public note:** Contract addresses, keys, and operational endpoints are intentionally withheld in this public README until audits and launch communications are complete.
 
