@@ -33,9 +33,6 @@ BTC → Relayer/Attester → VerifierHub → DepositProofGateStrict → cbBTC (B
 | └— builds proof/attestation └— transfers cbBTC on success
 └────────── withdraw: burn on Base; relayer settles BTC
 
-yaml
-Copy code
-
 ---
 
 ## 4) Protocol Flows
