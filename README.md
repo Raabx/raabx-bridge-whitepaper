@@ -16,7 +16,7 @@ The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit
 
 ---
 
-## 2) Components (no addresses in public version)
+## 2) Components 
 
 - **VerifierHub** — Registry: `bytes32 verifierKey → IVerifier`. Owner on cold key.  
 - **DepositProofGateStrict (“Gate”)** — Loads verifier from Hub; **reverts** if missing; on success transfers cbBTC from Gate balance to user.  
