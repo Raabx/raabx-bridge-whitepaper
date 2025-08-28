@@ -116,21 +116,21 @@ interface IGate {
     bytes calldata proof
   ) external returns (bool);
 }
+
+---
+
 10) Disclosures
 This is an MVP demo. Funds and per-tx caps are limited; withdrawals may be delayed; verifier is signature-based today. Do not store large balances in the Gate. Use at your own risk.
+
+---
 
 11) Contact
 Org: RAABX
 
+---
+
 Public updates will be posted after audits and launch readiness checks.
 
-Appendix — Incident Prevention (public)
-Prominent “Network must be Base” indicators for all cbBTC actions.
+---
 
-Address-checksum and chain-ID guards in UI/API.
 
-pgsql
-Copy code
-
-**Where to paste:** open your repo → click **Add file → Create new file** → name it `README.md` → paste the content → **Commit**.
-::contentReference[oaicite:0]{index=0}
