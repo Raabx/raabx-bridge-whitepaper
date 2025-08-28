@@ -116,7 +116,7 @@ User burn/intent on Base ─▶ Relayer validates ─▶ (Now) operator payout B
 ## 8) Roadmap
 
 1. **HTLC/PTLC** withdrawals (script-enforced release).  
-2. **zk-SPV** circuit hardening: multi-epoch proofs, minimal witness size, verifier gas optimizations.  
+2. **zk-SPV circuit hardening**: multi-epoch proofs, minimal witness size, verifier gas optimizations.  
 3. **RAABX integration** (anchors, exits, zk-KYC lanes).  
 4. **BTC-only covenant rollup** path when covenant opcodes become available.
 
