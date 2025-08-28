@@ -139,7 +139,7 @@ User reveals preimage (or timeout path) ─▶ BTC release per script
   - Maintain Gate cbBTC ≥ target X; alert if below.  
   - Maintain BTC UTXO reserve ≥ target Y; auto-sweep change; consolidate when fees are low.
 - **Rotations & upgrades:**  
-  - Rotate verifier by updating `VerifierHub.setVerifier(key, newVerifier)` under the cold owner.  
+  - Rotate verifier by updating `VerifierHub.setVerifier(key, newVerifier)` 
   - Post verification key hash and circuit version to the public registry.
 - **Emergency controls:**  
   - Pause credits by setting verifier to `0x0` (Strict Gate reverts).  
