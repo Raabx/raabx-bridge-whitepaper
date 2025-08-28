@@ -93,38 +93,12 @@ Copy code
 
 ---
 
-## 9) Interfaces (sketch)
-
-```solidity
-interface IVerifierHub {
-  function getVerifier(bytes32 key) external view returns (IVerifier);
-}
-
-interface IVerifier {
-  function verify(bytes calldata proof, bytes calldata publicInputs)
-    external
-    view
-    returns (bool);
-}
-
-interface IGate {
-  function verifyAndCredit(
-    address to,
-    uint256 amountWei,
-    bytes32 digest,
-    bytes calldata publicInputs,
-    bytes calldata proof
-  ) external returns (bool);
-}
-
----
-
-10) Disclosures
+9) Disclosures
 This is an MVP demo. Funds and per-tx caps are limited; withdrawals may be delayed; verifier is signature-based today. Do not store large balances in the Gate. Use at your own risk.
 
 ---
 
-11) Contact
+10) Contact
 Org: RAABX
 
 ---
@@ -132,5 +106,4 @@ Org: RAABX
 Public updates will be posted after audits and launch readiness checks.
 
 ---
-
 
