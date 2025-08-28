@@ -54,8 +54,7 @@ Withdraw (cbBTC → BTC):
 User burn/intent on Base ─▶ Relayer validates ─▶ (Now) operator payout BTC
 └▶ (Next) HTLC/PTLC script release
 
-markdown
-Copy code
+---
 
 **Why the design is future-proof**
 - **Pluggable verifier** via `VerifierHub` (rotate to newer circuits without redeploying the Gate).
