@@ -58,7 +58,7 @@ User reveals preimage (or timeout path) ─▶ BTC release per script
 
 | Component                  | Purpose                                                                                                      |
 |---------------------------|--------------------------------------------------------------------------------------------------------------|
-| **VerifierHub**           | Registry `bytes32 verifierKey → IVerifier`. Cold-key owned.                                                   |
+| **VerifierHub**           | Registry `bytes32 verifierKey → IVerifier`.                                                   |
 | **DepositProofGateStrict**| Stateless Gate. Loads verifier from Hub, **reverts if none**, and transfers cbBTC upon successful verify.     |
 | **ZkSpvVerifier**         | On-chain verifier for SNARK proof validating Bitcoin header chain and tx inclusion with k-deep policy.        |
 | **Relayer / Prover**      | Observes Bitcoin, assembles witness, **generates zk-SPV proof**, submits to Gate via Hub.                     |
