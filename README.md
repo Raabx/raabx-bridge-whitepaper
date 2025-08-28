@@ -26,7 +26,7 @@ The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit
 
 | Component                | Role (high level)                                                                                                     |
 |--------------------------|------------------------------------------------------------------------------------------------------------------------|
-| **VerifierHub**          | Registry mapping `bytes32 verifierKey → IVerifier`. Owned by a cold key.                                               |
+| **VerifierHub**          | Registry mapping `bytes32 verifierKey → IVerifier`                                                                      |
 | **DepositProofGateStrict** (“Gate”) | Loads verifier from Hub; **reverts if missing**; on success **transfers cbBTC** from Gate balance to user.               |
 | **ZkSpvVerifier**        | Verifies the SNARK proof for Bitcoin header chain validity + Merkle inclusion; binds `(to, amount, gate, chainId, nonce)`. |
 | **Relayer / Prover**     | Observes Bitcoin, assembles witness data, **generates zk-SPV proof**, and submits `(publicInputs, proof)` to the Gate via Hub. |
