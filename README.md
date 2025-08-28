@@ -93,17 +93,17 @@ Copy code
 
 ---
 
-9) Disclosures
+## 9) Disclosures
 This is an MVP demo. Funds and per-tx caps are limited; withdrawals may be delayed; verifier is signature-based today. Do not store large balances in the Gate. Use at your own risk.
 
 ---
 
-10) Contact
+## 10) Contact
 Org: RAABX
 
 ---
 
-Public updates will be posted after audits and launch readiness checks.
+## Public updates will be posted after audits and launch readiness checks.
 
 ---
 
