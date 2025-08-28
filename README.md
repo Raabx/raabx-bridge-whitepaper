@@ -32,27 +32,6 @@ The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit
 | **Relayer / Prover**     | Observes Bitcoin, assembles witness data, **generates zk-SPV proof**, and submits `(publicInputs, proof)` to the Gate via Hub. |
 | **Treasury wallets**     | Pre-fund Gate with cbBTC; maintain BTC reserves for withdrawals (moving toward HTLC/PTLC scripts next).                |
 
-
----
-
-## 3) Architecture (high-level, zk-SPV)
-
-Bitcoin (headers + tx) zk-SPV proof (SNARK)
-│ ▲
-│ observe tx, collect headers │ (Merkle inclusion + PoW + retarget + depth)
-▼ │
-Relayer / Prover ─────────────────────┘
-│ submit {to, amount, digest, publicInputs, proof}
-▼
-VerifierHub ──▶ ZkSpvVerifier (pluggable via verifierKey)
-│
-▼
-DepositProofGateStrict ── transfers cbBTC on success ──▶ cbBTC (Base)
-
-Withdraw (cbBTC → BTC):
-User burn/intent on Base ─▶ Relayer validates ─▶ (Now) operator payout BTC
-└▶ (Next) HTLC/PTLC script release
-
 ---
 
 **Why the design is future-proof**
@@ -62,7 +41,7 @@ User burn/intent on Base ─▶ Relayer validates ─▶ (Now) operator payout B
 
 ---
 
-## 4) Protocol Flows
+## 3) Protocol Flows
 
 ### A) BTC → cbBTC (credit on Base, zk-SPV)
 1. User deposits BTC to a derived address (from our public account xpub/zpub).
@@ -72,7 +51,7 @@ User burn/intent on Base ─▶ Relayer validates ─▶ (Now) operator payout B
 5. Gate asks `VerifierHub.getVerifier(verifierKey)` → `ZkSpvVerifier.verify(...)`.
 6. If `true`, Gate transfers cbBTC to `to` and emits `Credited`.
 
-### B) cbBTC → BTC (settle to Bitcoin)
+### 4) cbBTC → BTC (settle to Bitcoin)
 - **Current:** User burns cbBTC (or signs a withdraw intent); relayer validates and pays BTC from reserves.  
 - **Next:** **HTLC/PTLC** script path to remove operator trust on withdrawals.
 
