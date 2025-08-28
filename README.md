@@ -32,7 +32,6 @@ The bridge aligns with the RAABX L2/L3 roadmap (Bitcoin-cadence timing, explicit
 | **Relayer / Prover**     | Observes Bitcoin, assembles witness data, **generates zk-SPV proof**, and submits `(publicInputs, proof)` to the Gate via Hub. |
 | **Treasury wallets**     | Pre-fund Gate with cbBTC; maintain BTC reserves for withdrawals (moving toward HTLC/PTLC scripts next).                |
 
-> An **attested-signature fallback** may exist behind a feature flag for ops emergencies, but it is **disabled for production**; the active path is zk-SPV.
 
 ---
 
