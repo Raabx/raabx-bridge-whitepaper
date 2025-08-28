@@ -199,23 +199,3 @@ Do not treat Gate reserves as long-term custody. Use at your own risk.
 
 ---
 
-## Appendix A — Solidity Interfaces
-
-```solidity
-interface IVerifierHub {
-  function getVerifier(bytes32 key) external view returns (IVerifier);
-}
-
-interface IVerifier {
-  function verify(bytes calldata proof, bytes calldata publicInputs) external view returns (bool);
-}
-
-interface IGate {
-  function verifyAndCredit(
-    address to,
-    uint256 amountWei,
-    bytes32 digest,
-    bytes calldata publicInputs,
-    bytes calldata proof
-  ) external returns (bool);
-}
